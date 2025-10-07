@@ -1,1 +1,16 @@
-# requirements.txt placeholder
+pandas
+numpy
+scikit-learn
+xgboost
+joblib
+openpyxl
+shap
+lime
+fairlearn
+fastapi
+uvicorn
+pytest
+pytest-cov
+black
+ruff
+pre-commit

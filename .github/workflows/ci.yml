@@ -30,12 +30,12 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-pip-
 
-      # 4️⃣ Install dependencies, pytest, and pre-commit
+      # 4️⃣ Install dependencies + essential packages
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-          pip install pytest pre-commit
+          pip install pytest pre-commit pandas numpy scikit-learn
 
       # 5️⃣ Run code formatting & lint checks
       - name: Run pre-commit (Black/Ruff)
@@ -47,7 +47,7 @@ jobs:
           chmod +x scripts/run_tests.sh
           ./scripts/run_tests.sh
 
-      # 7️⃣ Train on synthetic data (smoke test)
+      # 7️⃣ Smoke train (synthetic data)
       - name: Smoke train (synthetic data)
         run: |
           python -m src.bigbasket.train --outdir models
