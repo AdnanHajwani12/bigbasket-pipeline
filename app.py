@@ -40,9 +40,20 @@ try:
 except Exception:
     has_fairlearn = False
 
+
+
+st.header("Problem Statement")
+st.markdown(
+    """
+**BigBasket, one of India’s largest online grocery platforms, frequently uses discounts and price reductions as a strategy to attract customers, boost sales, and remain competitive. While discounts can be a powerful tool for customer engagement, they can also raise important questions: Are these discounts being offered on high-quality, popular items, or are they mostly applied to lower-rated or overstocked products? Is there a consistent pattern in how different brands or product categories are discounted? In this project, we aim to explore these questions by analyzing BigBasket’s product catalog, which includes details like product names, categories, brands, pricing, and customer ratings.**
+
+The core objective is to understand how discount patterns vary across various segments and whether there is a meaningful relationship between the discount percentage and customer ratings. We'll calculate the discount percentage for each product using its market price and sale price, then analyze how these discounts are distributed across different product categories, subcategories, and brands. Additionally, we’ll investigate whether products with higher discounts tend to have lower customer ratings, which could indicate potential issues with product quality or demand.
+
+By combining visual analytics and statistical techniques, this project will uncover insights that can help inform smarter pricing and promotional strategies. The final output will be a data-driven report or dashboard showcasing key findings, such as which brands offer the steepest discounts, how ratings correlate with pricing, and actionable recommendations for optimizing discount policies to balance profitability with customer satisfaction.
+"""
+)
 st.set_page_config(page_title="Exp5: Ratings & Discounts — Responsible AI", layout="wide")
 st.title("📦 Relationship between Discounts and Product Ratings")
-
 st.markdown(
     """
     This app trains regression models (Ridge, Random Forest, XGBoost) to predict product ratings,
@@ -460,7 +471,7 @@ if run_train:
 # Post-training UI
 # -----------------------
 if models is not None:
-    st.header('📈 Model comparison')
+    st.header(' Model comparison')
     st.table(results_df.set_index('Model'))
 
     model_choice = st.selectbox('Choose model for explanations', options=list(models.keys()))
@@ -475,7 +486,7 @@ if models is not None:
     st.dataframe(sample_df)
 
     # SHAP global explanations (defensive)
-    st.subheader('🔍 SHAP global explanations')
+    st.subheader(' SHAP global explanations')
     try:
         pre = model.named_steps.get('pre', preprocessor)
         # prepare background: sample from train
@@ -512,35 +523,45 @@ if models is not None:
     except Exception as e:
         st.write('Could not produce dependence scatter:', e)
 
-    # LIME local explanations
-    st.subheader('🧾 LIME — local explanations')
-    if not has_lime:
-        st.info('LIME not installed. To enable LIME, pip install lime and refresh.')
-    else:
-        try:
-            pre = model.named_steps['pre']
-            X_train_tr = pre.transform(X_train)
-            # Attempt to build feature_names for Lime
-            feat_names = numeric_features.copy()
-            try:
-                ohe = pre.named_transformers_['cat'].named_steps['ohe']
-                cat_names = list(ohe.get_feature_names_out(categorical_features))
-                feat_names += cat_names
-            except Exception:
-                # fallback: use positional names
-                feat_names = [f'f{i}' for i in range(X_train_tr.shape[1])]
-            explainer = LimeTabularExplainer(X_train_tr, feature_names=feat_names, verbose=False, mode='regression')
-            idx = st.number_input('Choose an integer index (0..n_test-1) for a test sample to explain', min_value=0, max_value=max(0, len(X_test)-1), value=0)
-            x_instance = X_test.reset_index(drop=True).loc[idx:idx]
-            x_tr = pre.transform(x_instance)
-            exp = explainer.explain_instance(x_tr.ravel(), model.predict, num_features=8)
-            html = exp.as_html()
-            st.components.v1.html(html, height=400, scrolling=True)
-        except Exception as e:
-            st.warning('LIME explanation failed: ' + str(e))
+# st.subheader('LIME — local explanations')
+
+# if not has_lime:
+#     st.info('LIME not installed. To enable LIME, pip install lime and refresh.')
+# else:
+#     try:
+#         # Use raw X_train
+#         X_train_raw = X_train.copy()
+#         feat_names = X_train_raw.columns.tolist()
+
+#         def predict_fn(x):
+#             x_df = pd.DataFrame(x, columns=feat_names)
+#             return model.predict(x_df)   # <-- removed pre.transform()
+
+#         explainer = LimeTabularExplainer(
+#             training_data=X_train_raw.values,
+#             feature_names=feat_names,
+#             mode='regression'
+#         )
+
+#         idx = st.number_input(
+#             'Choose an integer index (0..n_test-1) for a test sample to explain',
+#             min_value=0,
+#             max_value=len(X_test)-1,
+#             value=0
+#         )
+
+#         x_instance = X_test.iloc[[idx]]
+#         exp = explainer.explain_instance(x_instance.values[0], predict_fn, num_features=8)
+#         st.components.v1.html(exp.as_html(), height=400, scrolling=True)
+
+#     except Exception as e:
+#         st.warning('LIME explanation failed: ' + str(e))
+
+
+
 
     # Fairness audit across brand groups
-    st.subheader('⚖️ Fairness audit by brand (group-wise MAE & R²)')
+    st.subheader(' Fairness audit by brand (group-wise MAE & R²)')
     if not has_fairlearn:
         st.info('Fairlearn not installed. To enable fairness metrics, pip install fairlearn.')
     else:
@@ -575,7 +596,7 @@ if models is not None:
             st.warning('Fairness audit failed: ' + str(e))
 
     # Save model button (download selected model)
-    st.subheader('💾 Save a trained model')
+    st.subheader(' Save a trained model')
     model_name = st.text_input('Filename for model (e.g. model.pkl)', value='exp5_model.pkl')
     if st.button('Save selected model'):
         try:
@@ -587,9 +608,13 @@ if models is not None:
             st.error("Could not save model: " + str(e))
 
     # Generate Dockerfile + FastAPI stub
-    st.subheader('🐳 Generate Dockerfile + FastAPI stub')
-    if st.button('Generate API + Dockerfile'):
-        api_code = """
+# Only generate API + Dockerfile if models exist
+# Only generate API + Dockerfile if models exist
+if models is not None:
+    st.subheader('Generate Dockerfile + FastAPI stub')
+    
+    # Define api_code properly
+    api_code = """
 from fastapi import FastAPI
 from pydantic import BaseModel
 import pickle
@@ -617,7 +642,8 @@ def predict(item: RequestItem):
     preds = model.predict(df)
     return {'predicted_rating': float(preds[0])}
 """
-        dockerfile = """
+
+    dockerfile = """
 # Dockerfile
 FROM python:3.10-slim
 WORKDIR /app
@@ -627,16 +653,10 @@ COPY api.py ./
 COPY model.pkl ./
 CMD ["uvicorn", "api:app", "--host", "0.0.0.0", "--port", "8000"]
 """
-        st.download_button('Download api.py', data=api_code, file_name='api.py')
-        st.download_button('Download Dockerfile', data=dockerfile, file_name='Dockerfile')
-        st.success('API stub and Dockerfile generated for download')
 
+    st.download_button('Download api.py', data=api_code, file_name='api.py')
+    st.download_button('Download Dockerfile', data=dockerfile, file_name='Dockerfile')
+    st.success('API stub and Dockerfile generated for download')
 else:
     st.info('Train models to enable explanations, fairness audit and deployment helpers.')
 
-st.sidebar.markdown('''
-### Notes & next steps
-- This app assumes `rating` is continuous (regression). For stock-out classification, use a separate pipeline.
-- To enable full LIME/XGBoost/Fairlearn functionality: `pip install lime xgboost fairlearn`.
-- To deploy: save the model, create an API (api.py), build Docker image and run.
-''')
